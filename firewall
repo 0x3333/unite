@@ -1,0 +1,138 @@
+#!/bin/bash
+
+# Author: Tercio Gaudencio Filho <terciofilho [at] gmail.com>
+
+#
+# WARNING: When running nft with -f option, ruleset folder must be the cwd.
+#
+
+readonly DEFAULT=/etc/default/firewall
+readonly LSB_FUNCTIONS="/lib/lsb/init-functions"
+
+# The following variables may be overwritten in /etc/default/firewall
+RULESET_FOLDER="/etc/firewall"
+MAIN_RULESET="${RULESET_FOLDER}/main.ruleset"
+SYSCTL_VARS="${RULESET_FOLDER}/sysctl.conf"
+# End of overwritable variables
+
+# Overwrite default variables
+[[ -r "${DEFAULT}" ]] && . "${DEFAULT}"
+
+# Dependencies check
+check_dep() {
+  if ! $(command -v "${1}" > /dev/null); then
+    log_failure_msg "${1} program not available!" >&2
+    exit 1
+  fi
+}
+
+# Enable firewall
+enable() {
+  log_begin_msg "Applying sysctl variables"
+  if ! sysctl -p "${SYSCTL_VARS}"; then
+    log_end_msg $?
+    return $?
+  fi
+  if [[ $? -eq 0 ]]; then
+    log_begin_msg "Applying nftables ruleset"
+    nft flush ruleset
+    OUTPUT=$(cd "${RULESET_FOLDER}"; nft -f ${MAIN_RULESET} 2>&1)
+    RETVAL=$?
+    log_end_msg $RETVAL
+    [[ $RETVAL -ne 0 ]] && echo "$OUTPUT" >&2
+    return $RETVAL
+  fi
+}
+
+# Disable firewall
+disable() {
+  log_begin_msg "Flushing nftables ruleset"
+  nft flush ruleset
+  log_end_msg $?
+  log_begin_msg "Restoring sysctl default variables"
+  sysctl -p
+  log_end_msg $?
+}
+
+# Status of the nft ruleset
+status() {
+  OUTPUT=$(nft list ruleset)
+  if [[ ! -z "$OUTPUT" ]]; then
+    log_success_msg "Firewall running"
+  else
+    log_failure_msg "Firewall not running"
+  fi
+}
+
+# Check ruleset
+check() {
+  log_begin_msg "Checking Ruleset"
+  OUTPUT=$(cd "${RULESET_FOLDER}"; nft -c -f ${MAIN_RULESET} 2>&1)
+  RETVAL=$?
+  log_end_msg $RETVAL
+  [[ $RETVAL -ne 0 ]] && echo "$OUTPUT" >&2
+  return $RETVAL
+}
+
+# Install firewall link on /usr/sbin
+install() {
+  log_begin_msg "Creating /usr/sbin link"
+  [[ ! -f /usr/sbin/firewall ]] && ln -s $(readlink -f "${0}") /usr/sbin/firewall
+  log_end_msg $?
+}
+
+# Configure firewall logging
+logging() {
+  log_begin_msg "Configuring logging"
+  
+  if [[ ! -f "${RULESET_FOLDER}/log-${1}.ruleset" ]]; then
+    log_progress_msg "Invalid logging option"
+    log_end_msg 1
+  fi
+  [[ -h "${RULESET_FOLDER}/log.ruleset" ]] && rm "${RULESET_FOLDER}/log.ruleset"
+
+  ln -s "${RULESET_FOLDER}/log-${1}.ruleset" "${RULESET_FOLDER}/log.ruleset"
+  log_end_msg $?
+}
+
+# Create a logging options based on the log-*.ruleset files in the $RULESET_FOLDER
+get_logging_opts() {
+      logging_opts=""
+      for log_file in $(find ${RULESET_FOLDER} -iname 'log-*.ruleset' -type f -printf "%f\n"); do
+        opt=${log_file/log-/}
+        opt=${opt/.ruleset/}
+        logging_opts="${logging_opts}|${opt}"
+      done
+      logging_opts=${logging_opts:1}
+}
+
+# Main function
+main() {
+  case "$1" in
+    enable|disable|status|check|install|logging)
+      $1 ${@:2}
+      exit $?
+      ;;
+
+    *)
+      get_logging_opts
+      echo "Usage: ${0} {install|check|enable|disable|logging {${logging_opts}}}"
+      exit 255
+      ;;
+  esac
+}
+
+# The LSB functions must be present, then source it.
+if [[ ! -r "$LSB_FUNCTIONS" ]]; then
+  echo "LSB functions not found/could not read: script cannot run" >&2
+  exit 1
+fi
+. "${LSB_FUNCTIONS}"
+
+# Check dependencies
+check_dep "nft"
+check_dep "sysctl"
+check_dep "find"
+
+# Run
+main "$@"

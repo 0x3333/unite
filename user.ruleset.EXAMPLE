@@ -1,0 +1,28 @@
+# Host Chain/Rules
+table ip filter {
+    chain x-user-input {
+        # Allow SSH on all interfaces
+        meta l4proto tcp tcp dport ssh accept
+    }
+}
+
+# Docker Containers Chain/Rules
+# Create netdev table/chain
+table netdev filter {
+    chain ingress {
+        type filter hook ingress device ens33 priority 0; policy accept;
+
+        # ICMP Ping, ARP and DNS
+        meta l4proto icmp icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+        ether type arp accept
+        udp sport domain accept
+
+        # Container rules
+        ip daddr 192.168.30.10 tcp dport {http, https} accept
+        ip daddr 192.168.30.11 udp dport {69, 64000-65000} accept
+        
+        # Log failures
+        ip daddr { 192.168.30.10-192.168.30.30 } log prefix "[NFT BLOCK INGRESS] "
+        ip daddr { 192.168.30.10-192.168.30.30 } drop
+    }
+}

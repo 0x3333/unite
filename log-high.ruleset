@@ -1,0 +1,35 @@
+table ip filter {
+    chain x-before-logging-input {
+        limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
+    }
+    chain x-before-logging-output {
+        limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
+    }
+    chain x-before-logging-forward {
+        limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
+    }
+
+    chain x-after-logging-input {
+        counter log prefix "[NFT BLOCK] "
+    }
+    chain x-after-logging-output {
+        counter log prefix "[NFT ALLOW] "
+    }
+    chain x-after-logging-forward {
+        counter log prefix "[NFT BLOCK] "
+    }
+
+    chain x-logging-deny {
+        ct state invalid counter log prefix "[NFT AUDIT INVALID] "
+        counter log prefix "[NFT BLOCK] "
+    }
+
+    chain x-logging-allow {
+        counter log prefix "[NFT ALLOW] "
+    }
+
+    chain x-user-limit {
+        limit rate 3/minute counter log prefix "[NFT LIMIT BLOCK] "
+        counter reject
+    }
+}
