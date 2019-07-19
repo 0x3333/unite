@@ -7,18 +7,21 @@ table ip filter {
 }
 
 # Docker Containers Chain/Rules
-# Create netdev table/chain
+# This is a stateless chain
 table netdev filter {
     chain ingress {
         type filter hook ingress device ens33 priority 0; policy accept;
 
-        # ICMP Ping, ARP and DNS
+        # ICMP Ping, ARP and DNS, accept for all
         meta l4proto icmp icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
         ether type arp accept
         udp sport domain accept
 
         # Container rules
+
+        # http/https
         ip daddr 192.168.30.10 tcp dport {http, https} accept
+        # tftp
         ip daddr 192.168.30.11 udp dport {69, 64000-65000} accept
         
         # Log failures
