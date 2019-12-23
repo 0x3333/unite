@@ -22,11 +22,13 @@ cp user.ruleset.EXAMPLE user.ruleset
 
 ## Configuration
 
+All user rulesets must be provided in the `user.ruleset` file in the `unite` folder. The syntax is the same as nft config files.
+
 You can override default file locations using `/etc/default/unite`:
 
 ```
 RULESET_FOLDER = "/some/custom/location/unite"
-MAIN_RULESET   = "${RULESET_FOLDER}/main.rueset"
+MAIN_RULESET   = "${RULESET_FOLDER}/main.ruleset"
 SYSCTL_FILE    = "${RULESET_FOLDER}/sysctl.conf"
 SYSTEMD_FILE   = "${RULESET_FOLDER}/unite.service"
 ```
