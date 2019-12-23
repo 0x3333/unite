@@ -1,0 +1,174 @@
+#!/bin/bash
+
+# Author: Tercio Gaudencio Filho <terciofilho [at] gmail.com>
+
+readonly DEFAULT=/etc/default/unite
+readonly LSB_FUNCTIONS="/lib/lsb/init-functions"
+
+# The following variables may be overwritten in /etc/default/unite
+RULESET_FOLDER=${RULESET_FOLDER:-"/etc/unite"}
+MAIN_RULESET=${MAIN_RULESET:-"${RULESET_FOLDER}/main.ruleset"}
+SYSCTL_FILE=${SYSCTL_FILE:-"${RULESET_FOLDER}/sysctl.conf"}
+SYSTEMD_FILE=${SYSTEMD_FILE:-"${RULESET_FOLDER}/unite.service"}
+# End of overwritable variables
+
+# Overwrite default variables
+[[ -r "${DEFAULT}" ]] && . "${DEFAULT}"
+
+check_dep() {
+  if ! $(command -v "${1}" > /dev/null); then
+    log_failure_msg "${1} program not available!" >&2
+    exit 1
+  fi
+}
+
+systemd_enable() {
+  log_action_msg "Enabling on bootup"
+  [[ ! -f /etc/systemd/system/unite.service ]] && ln -s "${SYSTEMD_FILE}" /etc/systemd/system/unite.service
+  systemctl enable unite
+}
+
+systemd_disable() {
+  log_action_msg "Disabling on bootup"
+  [[ ! -f /etc/systemd/system/unite.service ]] && ln -s "${SYSTEMD_FILE}" /etc/systemd/system/unite.service
+  systemctl disable unite
+}
+
+enable() {
+  systemd_enable
+
+  start
+}
+
+disable() {
+  stop
+
+  systemd_disable
+}
+
+start() {
+  ! check && return $?
+
+  log_begin_msg "Applying sysctl variables"
+  OUTPUT=$(sysctl -p ${SYSCTL_FILE} 2>&1)
+  RETVAL=$?
+  ! log_end_msg $RETVAL && echo "$OUTPUT" >&2
+  if [[ $RETVAL -eq 0 ]]; then
+    log_begin_msg "Applying nftables ruleset"
+    # Flushing ruleset first
+    nft flush ruleset
+    # NOTE: Running nft with -f option the ruleset folder must be the cwd.
+    OUTPUT=$(cd "${RULESET_FOLDER}"; nft -f ${MAIN_RULESET})
+    RETVAL=$?
+    ! log_end_msg $RETVAL && echo "$OUTPUT" >&2
+    return $RETVAL
+  fi
+}
+
+stop() {
+  log_begin_msg "Flushing nftables ruleset"
+  nft flush ruleset
+  log_end_msg $?
+
+  log_begin_msg "Restoring sysctl default variables"
+  sysctl -p > /dev/null
+  log_end_msg $?
+}
+
+# Status of the nft ruleset
+status() {
+  OUTPUT=$(nft list ruleset)
+  if [[ -n "$OUTPUT" ]]; then
+    log_action_msg "Firewall running"
+    return 0
+  fi
+  log_action_msg "Firewall not running"
+  return 1
+}
+
+check() {
+  log_begin_msg "Checking Ruleset"
+  OUTPUT=$(cd "${RULESET_FOLDER}"; nft -c -f ${MAIN_RULESET} 2>&1)
+  RETVAL=$?
+  ! log_end_msg $RETVAL && echo "$OUTPUT" >&2
+  return $RETVAL
+}
+
+# Install unite link on /usr/sbin
+install() {
+  log_action_msg "Installing unite"
+  if [[ ! -d /run/systemd/system/ ]]; then
+    log_end_msg $?
+    log_failure_msg "unite is only compatible with systemd!"
+    return $?
+  fi
+
+  [[ ! -f /usr/sbin/unite ]] && ln -s $(readlink -f "${0}") /usr/sbin/unite
+
+  systemd_enable
+}
+
+logging() {
+  LEVEL=${1}
+  if [[ "${1}" == "on" ]]; then
+    LEVEL="low"
+  fi
+  
+  log_begin_msg "Configuring logging, '${LEVEL}'"
+
+  if [[ ! -f "${RULESET_FOLDER}/log-${LEVEL}.ruleset" ]]; then
+    log_end_msg $?
+    log_failure_msg "Invalid logging option, '${LEVEL}'"
+    return $?
+  fi
+
+  [[ ! -h "${RULESET_FOLDER}/log.ruleset" ]] || rm "${RULESET_FOLDER}/log.ruleset"
+  [[ $? -eq 0 ]] && ln -s "${RULESET_FOLDER}/log-${LEVEL}.ruleset" "${RULESET_FOLDER}/log.ruleset"
+
+  log_end_msg 0
+}
+
+# Create a logging options based on the log-*.ruleset files in the $RULESET_FOLDER
+get_logging_opts() {
+  logging_opts=""
+  for log_file in $(find ${RULESET_FOLDER} -iname 'log-*.ruleset' -type f -printf "%f\n"); do
+    opt=${log_file/log-/}
+    opt=${opt/.ruleset/}
+    logging_opts="${logging_opts}|${opt}"
+  done
+  logging_opts=${logging_opts:1}
+}
+
+# Main function
+main() {
+  # Check dependencies
+  check_dep "nft"
+  check_dep "sysctl"
+  check_dep "dirname"
+  check_dep "readlink"
+  check_dep "find"
+  check_dep "sed"
+
+  case "$1" in
+    enable|disable|start|stop|status|check|install|logging)
+      $1 ${@:2}
+      exit $?
+    ;;
+
+    *)
+      get_logging_opts
+      echo "Usage: ${0} {enable|disable|start|stop|status|check|install|logging {${logging_opts}}}"
+      exit 255
+    ;;
+  esac
+}
+
+# The LSB functions must be present, then source it.
+if [[ ! -r "$LSB_FUNCTIONS" ]]; then
+  echo "LSB functions not found/could not read: script cannot run" >&2
+  exit 1
+fi
+. "${LSB_FUNCTIONS}"
+
+# Run
+main "$@"

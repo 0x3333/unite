@@ -4,182 +4,173 @@ table ip filter {
     chain INPUT {
         type filter hook input priority 0; policy drop;
 
-        counter jump x-before-logging-input
-        counter jump x-before-input
-        counter jump x-after-input
-        counter jump x-after-logging-input
-        counter jump x-reject-input
-        counter jump x-track-input
-    }
-
-    chain FORWARD {
-        type filter hook forward priority 0; policy drop;
-
-        counter jump x-before-logging-forward
-        counter jump x-before-forward
-        counter jump x-after-forward
-        counter jump x-after-logging-forward
-        counter jump x-reject-forward
-        counter jump x-track-forward
+        counter jump u-before-logging-input
+        counter jump u-before-input
+        counter jump u-after-input
+        counter jump u-after-logging-input
+        counter jump u-reject-input
+        counter jump u-track-input
     }
 
     chain OUTPUT {
         type filter hook output priority 0; policy accept;
 
-        counter jump x-before-logging-output
-        counter jump x-before-output
-        counter jump x-after-output
-        counter jump x-after-logging-output
-        counter jump x-reject-output
-        counter jump x-track-output
+        counter jump u-before-logging-output
+        counter jump u-before-output
+        counter jump u-after-output
+        counter jump u-after-logging-output
+        counter jump u-reject-output
+        counter jump u-track-output
     }
 
-    chain x-before-logging-input {
+    chain FORWARD {
+        type filter hook forward priority 0; policy drop;
+
+        counter jump u-before-logging-forward
+        counter jump u-before-forward
+        counter jump u-after-forward
+        counter jump u-after-logging-forward
+        counter jump u-reject-forward
+        counter jump u-track-forward
     }
 
-    chain x-before-logging-output {
-    }
-
-    chain x-before-logging-forward {
-    }
-
-    chain x-before-input {
+    chain u-before-input {
         # allow all on loopback
         iifname lo counter accept
+
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
+
         # drop INVALID packets (logs these in loglevel medium and higher)
-        ct state invalid counter jump x-logging-deny
+        ct state invalid counter jump u-logging-deny
         ct state invalid counter drop
+
         # ok icmp codes for INPUT
         icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+
         # allow dhcp client to work
         udp sport 67 udp dport 68 counter accept
 
-        # x-not-local
-        counter jump x-not-local
+        # u-not-local
+        counter jump u-not-local
 
         # allow MULTICAST mDNS for service discovery (be sure the MULTICAST above is uncommented)
         ip daddr 224.0.0.251     udp dport 5353 counter accept
+
         # allow MULTICAST UPnP for service discovery (be sure the MULTICAST above is uncommented)
         ip daddr 239.255.255.250 udp dport 1900 counter accept
 
-        # x-user-input
-        counter jump x-user-input
+        # u-user-input
+        counter jump u-user-input
     }
 
-    chain x-before-output {
+    chain u-before-output {
         # allow all on loopback
         oifname lo counter accept
+
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
 
-        # x-user-output
-        counter jump x-user-output
+        # u-user-output
+        counter jump u-user-output
     }
 
-    chain x-before-forward {
+    chain u-before-forward {
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
+
         # ok icmp code for FORWARD
         icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
 
-        # x-user-forward
-        counter jump x-user-forward
+        # u-user-forward
+        counter jump u-user-forward
     }
 
-    chain x-after-input {
+    chain u-after-input {
         # don't log noisy services by default
-        udp dport { 67, 68, 137, 138 }   jump x-skip-to-policy-input
-        tcp dport { 139, 445 }           jump x-skip-to-policy-input
+        udp dport { 67, 68, 137, 138 }   jump u-skip-to-policy-input
+        tcp dport { 139, 445 }           jump u-skip-to-policy-input
+
         # don't log noisy broadcast
-        fib daddr type broadcast counter jump x-skip-to-policy-input
+        fib daddr type broadcast counter jump u-skip-to-policy-input
     }
 
-    chain x-after-output {
+    chain u-after-output {
     }
 
-    chain x-after-forward {
+    chain u-after-forward {
     }
 
-    chain x-after-logging-input {
+    chain u-reject-input {
     }
 
-    chain x-after-logging-output {
+    chain u-reject-output {
     }
 
-    chain x-after-logging-forward {
+    chain u-reject-forward {
     }
 
-    chain x-reject-input {
+    chain u-track-input {
     }
 
-    chain x-reject-output {
-    }
-
-    chain x-reject-forward {
-    }
-
-    chain x-track-input {
-    }
-
-    chain x-track-output {
+    chain u-track-output {
         # Counter output
         meta l4proto {tcp, udp} ct state new counter accept
     }
 
-    chain x-track-forward {
+    chain u-track-forward {
     }
 
-    chain x-logging-deny {
-    }
-
-    chain x-logging-allow {
-    }
-
-    chain x-skip-to-policy-input {
+    chain u-skip-to-policy-input {
         counter drop
     }
 
-    chain x-skip-to-policy-output {
+    chain u-skip-to-policy-output {
         counter accept
     }
 
-    chain x-skip-to-policy-forward {
+    chain u-skip-to-policy-forward {
         counter drop
     }
 
-    chain x-not-local {
+    chain u-not-local {
         # if LOCAL, MULTICAST, BROADCAST return
         fib daddr type { local, multicast, broadcast } counter return
+
         # all other non-local packets are dropped
-        limit rate 3/minute burst 10 packets counter jump x-logging-deny
+        limit rate 3/minute burst 10 packets counter jump u-logging-deny
         counter drop
     }
 
-    chain x-user-input {
+    chain u-logging-allow {
     }
 
-    chain x-user-output {
+    chain u-user-input {
     }
 
-    chain x-user-forward {
+    chain u-user-output {
     }
 
-    chain x-user-logging-input {
+    chain u-user-forward {
     }
 
-    chain x-user-logging-output {
+    chain u-before-logging-input {
+    }
+    chain u-before-logging-output {
+    }
+    chain u-before-logging-forward {
     }
 
-    chain x-user-logging-forward {
+    chain u-after-logging-input {
+    }
+    chain u-after-logging-output {
+    }
+    chain u-after-logging-forward {
     }
 
-    chain x-user-limit {
+    chain u-logging-deny {
     }
-
-    chain x-user-limit-accept {
-        counter accept
+    chain u-logging-allow {
     }
 }
 

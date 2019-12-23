@@ -1,31 +1,22 @@
 # Host Chain/Rules
 table ip filter {
-    chain x-user-input {
+    chain u-user-input {
         # Allow SSH on all interfaces
         meta l4proto tcp tcp dport ssh accept
     }
-}
 
-# Docker Containers Chain/Rules
-# This is a stateless chain
-table netdev filter {
-    chain ingress {
-        type filter hook ingress device ens33 priority 0; policy accept;
+    chain u-user-forward {
+    }
 
-        # ICMP Ping, ARP and DNS, accept for all
-        meta l4proto icmp icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
-        ether type arp accept
-        udp sport domain accept
+    chain u-user-output {
+    }
 
-        # Container rules
+    chain u-user-logging-input {
+    }
 
-        # http/https
-        ip daddr 192.168.30.10 tcp dport {http, https} accept
-        # tftp
-        ip daddr 192.168.30.11 udp dport {69, 64000-65000} accept
-        
-        # Log failures
-        ip daddr { 192.168.30.10-192.168.30.30 } log prefix "[NFT BLOCK INGRESS] "
-        ip daddr { 192.168.30.10-192.168.30.30 } drop
+    chain u-user-logging-output {
+    }
+
+    chain u-user-logging-forward {
     }
 }

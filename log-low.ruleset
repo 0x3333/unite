@@ -1,35 +1,26 @@
 table ip filter {
-    chain x-before-logging-input {
-
+    chain u-before-logging-input {
     }
-    chain x-before-logging-output {
-
+    chain u-before-logging-output {
     }
-    chain x-before-logging-forward {
-
+    chain u-before-logging-forward {
     }
 
-    chain x-after-logging-input {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
+    chain u-after-logging-input {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
     }
-    chain x-after-logging-output {
+    chain u-after-logging-output {
+    }
+    chain u-after-logging-forward {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
+    }
 
-    }
-    chain x-after-logging-forward {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
-    }
-
-    chain x-logging-deny {
+    chain u-logging-deny {
         ct state invalid limit rate 3/minute burst 10 packets counter return
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
     }
 
-    chain x-logging-allow {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT ALLOW] "
-    }
-
-    chain x-user-limit {
-        limit rate 3/minute counter log prefix "[NFT LIMIT BLOCK] " 
-        counter reject
+    chain u-logging-allow {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE ALLOW] "
     }
 }

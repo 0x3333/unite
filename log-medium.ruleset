@@ -1,35 +1,30 @@
 table ip filter {
-    chain x-before-logging-input {
-        ct state new limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
+    chain u-before-logging-input {
+        ct state new limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
     }
-    chain x-before-logging-output {
-        ct state new limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
+    chain u-before-logging-output {
+        ct state new limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
     }
-    chain x-before-logging-forward {
-        ct state new limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT] "
-    }
-
-    chain x-after-logging-input {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
-    }
-    chain x-after-logging-output {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT ALLOW] "
-    }
-    chain x-after-logging-forward {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
+    chain u-before-logging-forward {
+        ct state new limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
     }
 
-    chain x-logging-deny {
-        ct state invalid limit rate 3/minute burst 10 packets counter log prefix "[NFT AUDIT INVALID] "
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT BLOCK] "
+    chain u-after-logging-input {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
+    }
+    chain u-after-logging-output {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE ALLOW] "
+    }
+    chain u-after-logging-forward {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
     }
 
-    chain x-logging-allow {
-        limit rate 3/minute burst 10 packets counter log prefix "[NFT ALLOW] "
+    chain u-logging-deny {
+        ct state invalid limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT INVALID] "
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLOCK] "
     }
 
-    chain x-user-limit {
-        limit rate 3/minute counter log prefix "[NFT LIMIT BLOCK] "
-        counter reject
+    chain u-logging-allow {
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE ALLOW] "
     }
 }

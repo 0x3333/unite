@@ -1,0 +1,19 @@
+[Unit]
+Description=unite is a nftables firewall implementation based on UFW ruleset
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+Conflicts=shutdown.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardInput=null
+ProtectSystem=full
+ProtectHome=true
+ExecStart=/usr/sbin/unite start
+ExecReload=/usr/sbin/unite start
+ExecStop=/usr/sbin/unite stop
+
+[Install]
+WantedBy=sysinit.target
