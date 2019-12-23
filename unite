@@ -86,6 +86,11 @@ status() {
   return 1
 }
 
+# List nftables rulesets
+list() {
+  nft list ruleset
+}
+
 check() {
   log_begin_msg "Checking Ruleset"
   OUTPUT=$(cd "${RULESET_FOLDER}"; nft -c -f ${MAIN_RULESET} 2>&1)
@@ -150,14 +155,14 @@ main() {
   check_dep "sed"
 
   case "$1" in
-    enable|disable|start|stop|status|check|install|logging)
+    enable|disable|start|stop|status|check|install|list|logging)
       $1 ${@:2}
       exit $?
     ;;
 
     *)
       get_logging_opts
-      echo "Usage: ${0} {enable|disable|start|stop|status|check|install|logging {${logging_opts}}}"
+      echo "Usage: ${0} {enable|disable|start|stop|status|check|install|list|logging {${logging_opts}}}"
       exit 255
     ;;
   esac

@@ -40,6 +40,7 @@ SYSTEMD_FILE   = "${RULESET_FOLDER}/unite.service"
 | `unite enable`  | will check and apply all rules and enable on bootup       |
 | `unite disable` | will flush all rules and disable at startup               |
 | `unite status`  | will show nftables status                                 |
+| `unite list`    | will list all nftables rulesets                           |
 | `unite logging` | will set logging level                                    |
 
 ## Logging
