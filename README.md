@@ -17,7 +17,7 @@ pushd /etc/
 git clone https://github.com/0x3333/unite.git
 pushd unite
 cp user.ruleset.EXAMPLE user.ruleset
-./united install
+./unite install
 ```
 
 ## Configuration
