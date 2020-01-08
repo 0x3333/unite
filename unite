@@ -92,10 +92,16 @@ list() {
 }
 
 check() {
-  log_begin_msg "Checking Ruleset"
-  OUTPUT=$(cd "${RULESET_FOLDER}"; nft -c -f ${MAIN_RULESET} 2>&1)
-  RETVAL=$?
-  ! log_end_msg $RETVAL && echo "$OUTPUT" >&2
+  log_begin_msg "Checking logging"
+  [[ -h "${RULESET_FOLDER}/log.ruleset" ]] && RETVAL=0 || RETVAL=1
+  log_end_msg $RETVAL
+
+  if [[ $RETVAL -eq 0 ]]; then
+    log_begin_msg "Checking Ruleset"
+    OUTPUT=$(cd "${RULESET_FOLDER}"; nft -c -f ${MAIN_RULESET} 2>&1)
+    RETVAL=$?
+    ! log_end_msg $RETVAL && echo "$OUTPUT" >&2
+  fi
   return $RETVAL
 }
 
