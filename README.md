@@ -39,6 +39,7 @@ SYSTEMD_FILE   = "${RULESET_FOLDER}/unite.service"
 | --------------- | --------------------------------------------------------- |
 | `unite start`   | will check and apply nftables rules and sysctl properties |
 | `unite stop`    | will flush all rules and sysctl properties                |
+| `unite restart` | same as unite stop && unite start                         |
 | `unite enable`  | will check and apply all rules and enable on bootup       |
 | `unite disable` | will flush all rules and disable at startup               |
 | `unite status`  | will show nftables status                                 |
