@@ -160,9 +160,13 @@ main() {
       exit $?
     ;;
 
+    restart)
+      stop && start
+    ;;
+
     *)
       get_logging_opts
-      echo "Usage: ${0} {enable|disable|start|stop|status|check|install|list|logging {${logging_opts}}}"
+      echo "Usage: ${0} {enable|disable|start|stop|restart|status|check|install|list|logging {${logging_opts}}}"
       exit 255
     ;;
   esac
