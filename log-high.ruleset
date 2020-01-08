@@ -1,22 +1,22 @@
 table ip filter {
     chain u-before-logging-input {
-        limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE INPUT AUDIT] "
     }
     chain u-before-logging-output {
-        limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE OUTPUT AUDIT] "
     }
     chain u-before-logging-forward {
-        limit rate 3/minute burst 10 packets counter log prefix "[UNITE AUDIT] "
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE FORWARD AUDIT] "
     }
 
     chain u-after-logging-input {
-        counter log prefix "[UNITE BLOCK] "
+        counter log prefix "[UNITE INPUT BLOCK] "
     }
     chain u-after-logging-output {
-        counter log prefix "[UNITE ALLOW] "
+        counter log prefix "[UNITE OUTPUT ALLOW] "
     }
     chain u-after-logging-forward {
-        counter log prefix "[UNITE BLOCK] "
+        counter log prefix "[UNITE FORWARD BLOCK] "
     }
 
     chain u-logging-deny {
