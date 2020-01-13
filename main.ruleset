@@ -1,6 +1,6 @@
 flush ruleset
 
-table ip filter {
+table inet filter {
     chain INPUT {
         type filter hook input priority 0; policy drop;
 
@@ -38,27 +38,51 @@ table ip filter {
         # allow all on loopback
         iifname lo counter accept
 
+        # drop packets with RH0 headers
+        rt type 0 counter drop
+
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
+
+        # multicast ping replies are part of the ok icmp codes for INPUT (rfc4890,
+        # 4.4.1 and 4.4.2), but don't have an associated connection and are otherwise
+        # be marked INVALID, so allow here instead.
+        icmpv6 type echo-reply accept
 
         # drop INVALID packets (logs these in loglevel medium and higher)
         ct state invalid counter jump u-logging-deny
         ct state invalid counter drop
 
-        # ok icmp codes for INPUT
-        icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+        # ok icmp codes for INPUT (rfc4890, 4.4.1 and 4.4.2)
+        icmp   type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+        icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, echo-request } accept
+        icmpv6 type { nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } ip6 hoplimit 255 counter accept
+        # IND solicitation, advertisement
+        icmpv6 type { 141, 142 } ip6 hoplimit 255 accept
+        # MLD query, report, done, report v2
+        icmpv6 type { 130, 131, 132, 143 } ip6 saddr fe80::/10 accept
+        # SEND certificate path solicitation, advertisement
+        icmpv6 type { 148, 149 } ip6 hoplimit 255 accept
+        # MR advertisement, solicitation, termination
+        icmpv6 type { 151, 152, 153 } ip6 saddr fe80::/10 ip6 hoplimit 1 accept
+
+        # Home Agent Address Discovery Request, Reply, Mobile Prefix Solicitation, Advertisement
+        icmpv6 type { 144, 145, 146, 147 } accept
 
         # allow dhcp client to work
-        udp sport 67 udp dport 68 counter accept
+        udp sport 67  udp dport 68                                          counter accept
+        udp sport 547 udp dport 546 ip6 daddr fe80::/10 ip6 saddr fe80::/10 counter accept
 
         # u-not-local
         counter jump u-not-local
 
-        # allow MULTICAST mDNS for service discovery (be sure the MULTICAST above is uncommented)
-        ip daddr 224.0.0.251     udp dport 5353 counter accept
+        # allow MULTICAST mDNS for service discovery (be sure the MULTICAST below is uncommented)
+        udp dport mdns ip  daddr 224.0.0.251 counter accept
+        udp dport mdns ip6 daddr ff02::fb    counter accept
 
-        # allow MULTICAST UPnP for service discovery (be sure the MULTICAST above is uncommented)
-        ip daddr 239.255.255.250 udp dport 1900 counter accept
+        # allow MULTICAST UPnP for service discovery (be sure the MULTICAST below is uncommented)
+        udp dport 1900 ip  daddr 239.255.255.250 counter accept
+        udp dport 1900 ip6 daddr ff02::f         counter accept
 
         # u-user-input
         counter jump u-user-input
@@ -68,19 +92,38 @@ table ip filter {
         # allow all on loopback
         oifname lo counter accept
 
+        # drop packets with RH0 headers
+        rt type 0 counter drop
+
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
+
+        # ok icmp codes for OUTPUT (rfc4890, 4.4.1 and 4.4.2)
+        icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, echo-request, echo-reply } counter accept
+        icmpv6 type { nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert } ip6 hoplimit 255 counter accept
+        # IND solicitation, advertisement
+        icmpv6 type { 141, 142 } ip6 hoplimit 255 accept
+        # MLD query, report, done, report v2
+        icmpv6 type { 130, 131, 132, 143 } ip6 saddr fe80::/10 accept
+        # SEND certificate path solicitation, advertisement
+        icmpv6 type { 148, 149 } ip6 hoplimit 255 accept
+        # MR advertisement, solicitation, termination
+        icmpv6 type { 151, 152, 153 } ip6 saddr fe80::/10 ip6 hoplimit 1 accept
 
         # u-user-output
         counter jump u-user-output
     }
 
     chain u-before-forward {
+        # drop packets with RH0 headers
+        rt type 0 counter drop
+
         # quickly process packets for which we already have a connection
         ct state related,established counter accept
 
         # ok icmp code for FORWARD
-        icmp type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+        icmp   type { destination-unreachable, time-exceeded, parameter-problem, echo-request, echo-reply } accept
+        icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, echo-request, echo-reply } accept
 
         # u-user-forward
         counter jump u-user-forward

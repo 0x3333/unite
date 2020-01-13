@@ -1,5 +1,5 @@
 # Host Chain/Rules
-table ip filter {
+table inet filter {
     chain u-user-input {
         # Allow SSH on all interfaces
         meta l4proto tcp tcp dport ssh accept

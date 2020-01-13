@@ -1,4 +1,4 @@
-table ip filter {
+table inet filter {
     chain u-before-logging-input {
     }
     chain u-before-logging-output {

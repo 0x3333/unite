@@ -1,4 +1,4 @@
-table ip filter {
+table inet filter {
     chain u-before-logging-input {
         ct state new limit rate 3/minute burst 10 packets counter log prefix "[UNITE INPUT AUDIT] "
     }
