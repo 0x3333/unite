@@ -1,0 +1,24 @@
+#
+# Fail2ban Chain/Rules
+#
+# You must configure fail2ban to use this chain:
+#
+# In file `/etc/fail2ban/jail.conf` (or jail.local):
+#
+#       banaction = nftables-multiport
+#       banaction_allports = nftables-allports
+#
+# In file `/etc/fail2ban/action.d/nftables-common.conf`:
+#
+#       nftables_table = fail2ban
+#
+# In the same file, I suggest replacing `reject` by `drop`:
+#
+#       blocktype = reject
+
+table inet fail2ban {
+    chain input {
+        # Assign a high priority to reject earlier
+        type filter hook input priority -1;
+    }
+}

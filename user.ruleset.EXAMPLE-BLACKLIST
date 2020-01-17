@@ -1,0 +1,41 @@
+#
+# Block IPs by country
+#
+# You must have nft-blacklist.py script for this chain to work.
+# See https://github.com/rpthms/nft-blacklist
+#
+# Pay attention to do not block your own IP address.
+#
+table inet blacklist {
+
+    set blacklist-v4 {
+        type ipv4_addr
+        flags interval
+        auto-merge
+    }
+
+    set blacklist-v6 {
+        type ipv6_addr
+        flags interval
+        auto-merge
+    }
+
+    chain blacklist-logging-deny {
+        ct state invalid limit rate 3/minute burst 10 packets counter return
+        limit rate 3/minute burst 10 packets counter log prefix "[UNITE BLACKLIST] "
+    }
+
+    chain input {
+        type filter hook input priority -2;
+
+        # Uncomment the following line to log blocks
+        #ip saddr @blacklist-v4 jump blacklist-logging-deny
+
+        ip saddr @blacklist-v4 drop
+
+        # Uncomment the following line to log blocks
+        #ip6 saddr @blacklist-v6 jump blacklist-logging-deny
+
+        ip6 saddr @blacklist-v6 drop
+   }
+}

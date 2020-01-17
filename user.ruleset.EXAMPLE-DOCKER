@@ -1,0 +1,70 @@
+#
+# Docker Chain/Rules (WIP)
+#
+# In this scenario, I'm considering containers in their own bridges,
+# with previous known IP ranges. Internet interface name is `eth0`.
+#
+# In docker-compose.yml, you can use something like that:
+#       networks:
+#         default:
+#           driver: bridge
+#           ipam:
+#             config:
+#               - subnet: 192.168.10.0/24
+#       services:
+#         myapp:
+#           networks:
+#             default:
+#               ipv4_address: 192.168.10.100
+#
+# In the example I'm using 192.168.0.0/16, so all 192.168.X will be
+# considered as from containers(Note 16 CIDR not 24).
+#
+# You have to enable Forwarding on your kernel:
+#
+# Change provided sysctl.conf file:
+#       net.ipv4.ip_forward=1
+
+#
+# Docker NAT Chain/Rules
+table inet docker {
+    chain prerouting {
+        type nat hook prerouting priority -100; policy accept;
+
+        # Jump to Docker NAT rule
+        fib daddr type local jump docker;
+    }
+
+    # We use u-user-output, so all unite rules will be respected
+    chain u-user-output {
+        # Jump to Docker NAT rule
+        fib daddr type local jump docker;
+    }
+
+    # We use u-user-forward, so all unite rules will be respected
+    chain u-user-forward {
+        # Forward traffic from containers to internet
+        ip saddr 192.168.0.0/16 oifname "eth0" accept
+
+        # Forward traffic between containers
+        ip saddr 192.168.0.0/16 ip daddr 192.168.0.0/16 accept
+    }
+
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+
+        # Masquerade Docker containers to the internet
+        ip saddr 192.168.0.0/16 oifname "eth0" masquerade
+    }
+
+    chain output {
+        type nat hook output priority -100; policy accept;
+
+        fib daddr type local jump docker
+    }
+
+    chain docker {
+        # NAT from some external IP 1.1.1.1, port 1234 to the container on 192.168.10.100, port 4321:
+        meta l4proto tcp ip daddr 1.1.1.1 tcp dport 1234 dnat to 192.168.10.100:4321
+    }
+}

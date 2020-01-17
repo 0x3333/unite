@@ -10,13 +10,15 @@ To use the `install` command, your system must use `systemd` as init.
 
 ## Installation
 
-To install, clone repo on /etc/, create a user.ruleset(The example ruleset _allow_ SSH connection on all interfaces) file and run ./unite install:
+***The `.BASE` ruleset _allow_ SSH connection on all interfaces***
+
+To install, clone repo on /etc/, create a user.ruleset file and run ./unite install.
 
 ```
 pushd /etc/
 git clone https://github.com/0x3333/unite.git
 pushd unite
-cp user.ruleset.EXAMPLE user.ruleset
+cp user.ruleset.BASE user.ruleset
 ./unite install
 ```
 
@@ -67,6 +69,10 @@ Log levels above `medium` generate a lot of logging output, and may quickly fill
 
 Specifying '`on`' simply enables logging at log level '`low`' if logging is currently not enabled.
 
+## Examples
+
+I added some examples for Country Blacklist, `fail2ban` and `Docker`.
+
 ## Chains
 
 This is the graphical representation of the `unite` chains.
@@ -80,7 +86,7 @@ This is the graphical representation of the `unite` chains.
 ## License
 
 ```
-Copyright 2019 Tercio Gaudencio Filho
+Copyright 2019/2020 Tercio Gaudencio Filho
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
