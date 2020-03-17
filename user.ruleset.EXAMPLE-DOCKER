@@ -43,9 +43,6 @@ table inet docker {
 
     # We use u-user-forward, so all unite rules will be respected
     chain u-user-forward {
-        # Forward traffic from containers to internet
-        ip saddr 192.168.0.0/16 oifname "eth0" accept
-
         # Forward traffic between containers
         ip saddr 192.168.0.0/16 ip daddr 192.168.0.0/16 accept
     }
